@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Data Insights — HomeValue{% endblock %}
+{% block meta_description %}Charts, dataset statistics and measured model performance behind the HomeValue price estimates.{% endblock %}
+
+{% block content %}
+
+<section class="container section--tight">
+  <div class="section-heading">
+    <span class="eyebrow">Data insights</span>
+    <h1>What the model learned</h1>
+    <p>
+      Every chart and number on this page is computed directly from the cleaned dataset or from the
+      fitted model's own outputs. Nothing here is illustrative or hand-written.
+    </p>
+  </div>
+
+  {% set stats = metrics.dataset_statistics %}
+  {% set prep = metrics.data_preparation %}
+  {% set rf = metrics.models.random_forest %}
+  {% set lr = metrics.models.linear_regression %}
+
+  <div class="stat-strip" style="margin-bottom: 2.5rem;">
+    <div class="stat-strip__item">
+      <span class="stat-strip__value">{{ stats.total_properties | num }}</span>
+      <span class="stat-strip__label">Properties after cleaning</span>
+    </div>
+    <div class="stat-strip__item">
+      <span class="stat-strip__value">{{ stats.price.median | currency }}</span>
+      <span class="stat-strip__label">Median sale price</span>
+    </div>
+    <div class="stat-strip__item">
+      <span class="stat-strip__value">{{ stats.area_sqft.median | num }} <span style="font-size: 0.8rem; font-weight: 500;">sq ft</span></span>
+      <span class="stat-strip__label">Median living area</span>
+    </div>
+    <div class="stat-strip__item">
+      <span class="stat-strip__value">{{ stats.price_per_sqft.median | num(2) }}</span>
+      <span class="stat-strip__label">Median price per sq ft</span>
+    </div>
+  </div>
+</section>
+
+<!-- Dataset distributions -->
+<section class="container section--tight">
+  <div class="section-heading">
+    <h2>Price behaviour across the dataset</h2>
+    <p>
+      Distributions and relationships measured on all {{ stats.total_properties | num }} cleaned records
+      from {{ dataset.market_region }}.
+    </p>
+  </div>
+
+  <div class="chart-grid">
+    <figure class="chart-card">
+      <div class="chart-card__header">
+        <h3>Sale price distribution</h3>
+        <p>Histogram with kernel density estimate; median and mean marked.</p>
+      </div>
+      <div class="chart-card__body">
+        <img src="{{ url_for('static', filename=metrics.charts.price_distribution) }}"
+             alt="Histogram of recorded sale prices showing a right-skewed distribution with a median of {{ stats.price.median | currency }} and a long tail toward higher prices."
+             loading="lazy">
+      </div>
+    </figure>
+
+    <figure class="chart-card">
+      <div class="chart-card__header">
+        <h3>Price vs. living area</h3>
+        <p>Scatter by property type with an ordinary least squares trend line.</p>
+      </div>
+      <div class="chart-card__body">
+        <img src="{{ url_for('static', filename=metrics.charts.price_vs_area) }}"
+             alt="Scatter plot showing sale price increasing with above-grade living area, coloured by property type, with a fitted linear trend line."
+             loading="lazy">
+      </div>
+    </figure>
+
+    <figure class="chart-card">
+      <div class="chart-card__header">
+        <h3>Price vs. bedrooms</h3>
+        <p>Box plot of sale price grouped by number of above-grade bedrooms.</p>
+      </div>
+      <div class="chart-card__body">
+        <img src="{{ url_for('static', filename=metrics.charts.price_vs_bedrooms) }}"
+             alt="Box plot of sale price by bedroom count, showing median prices rising from one to four bedrooms and wider spread at higher counts."
+             loading="lazy">
+      </div>
+    </figure>
+
+    <figure class="chart-card">
+      <div class="chart-card__header">
+        <h3>Price vs. property age</h3>
+        <p>Individual sales with the median price per ten-year age band.</p>
+      </div>
+      <div class="chart-card__body">
+        <img src="{{ url_for('static', filename=metrics.charts.price_vs_age) }}"
+             alt="Scatter plot of sale price against property age in years with an overlaid line showing the median price within each ten-year age band."
+             loading="lazy">
+      </div>
+    </figure>
+  </div>
+</section>
+
+<hr class="divider" style="margin: 2.5rem auto; max-width: var(--max-width);">
+
+<!-- Model performance -->
+<section class="container section--tight">
+  <div class="section-heading">
+    <h2>Model performance</h2>
+    <p>
+      Both candidates were fitted on the same {{ prep.train_rows | num }}-row training split and scored on
+      the same untouched {{ prep.test_rows | num }}-row test split
+      ({{ (prep.test_split_ratio * 100) | round | int }}% holdout, random seed {{ prep.random_state }}).
+    </p>
+  </div>
+
+  <div class="model-compare">
+    <article class="model-card {% if metrics.selected_model_key == 'random_forest' %}model-card--selected{% endif %}">
+      <span class="model-card__badge {% if metrics.selected_model_key != 'random_forest' %}model-card__badge--muted{% endif %}">
+        {% if metrics.selected_model_key == 'random_forest' %}Selected model{% else %}Candidate{% endif %}
+      </span>
+      <h3>{{ rf.name }}</h3>
+      <ul class="summary-list">
+        <li><span class="summary-list__label">Test MAE</span><span class="summary-list__value">{{ rf.test_metrics.mae | currency }}</span></li>
+        <li><span class="summary-list__label">Test RMSE</span><span class="summary-list__value">{{ rf.test_metrics.rmse | currency }}</span></li>
+        <li><span class="summary-list__label">Test R²</span><span class="summary-list__value">{{ rf.test_metrics.r2 }}</span></li>
+        <li><span class="summary-list__label">Test MAPE</span><span class="summary-list__value">{{ rf.test_metrics.mape_percent }}%</span></li>
+        <li><span class="summary-list__label">Train R²</span><span class="summary-list__value">{{ rf.train_metrics.r2 }}</span></li>
+      </ul>
+    </article>
+
+    <article class="model-card {% if metrics.selected_model_key == 'linear_regression' %}model-card--selected{% endif %}">
+      <span class="model-card__badge {% if metrics.selected_model_key != 'linear_regression' %}model-card__badge--muted{% endif %}">
+        {% if metrics.selected_model_key == 'linear_regression' %}Selected model{% else %}Baseline{% endif %}
+      </span>
+      <h3>{{ lr.name }}</h3>
+      <ul class="summary-list">
+        <li><span class="summary-list__label">Test MAE</span><span class="summary-list__value">{{ lr.test_metrics.mae | currency }}</span></li>
+        <li><span class="summary-list__label">Test RMSE</span><span class="summary-list__value">{{ lr.test_metrics.rmse | currency }}</span></li>
+        <li><span class="summary-list__label">Test R²</span><span class="summary-list__value">{{ lr.test_metrics.r2 }}</span></li>
+        <li><span class="summary-list__label">Test MAPE</span><span class="summary-list__value">{{ lr.test_metrics.mape_percent }}%</span></li>
+        <li><span class="summary-list__label">Train R²</span><span class="summary-list__value">{{ lr.train_metrics.r2 }}</span></li>
+      </ul>
+    </article>
+  </div>
+
+  <div class="card" style="margin-top: 1.5rem;">
+    <div class="card__header">
+      <h3>Why this model was selected</h3>
+    </div>
+    <p>{{ metrics.selection_reason }}</p>
+    <p class="text-muted" style="font-size: 0.85rem;">
+      MAE is the average error in dollars. RMSE weights large errors more heavily. R² is the share of
+      price variance the model explains on unseen data — closer to 1.0 is better. MAPE is the average
+      error as a percentage of the sale price.
+    </p>
+  </div>
+
+  <div class="chart-grid" style="margin-top: 1.5rem;">
+    <figure class="chart-card">
+      <div class="chart-card__header">
+        <h3>Predicted vs. actual price</h3>
+        <p>Both models on the held-out test set. Points on the dashed line are perfect predictions.</p>
+      </div>
+      <div class="chart-card__body">
+        <img src="{{ url_for('static', filename=metrics.charts.model_comparison) }}"
+             alt="Scatter plot comparing predicted and actual sale prices for the Random Forest and Linear Regression models against the ideal one-to-one line."
+             loading="lazy">
+      </div>
+    </figure>
+
+    <figure class="chart-card">
+      <div class="chart-card__header">
+        <h3>Global feature importance</h3>
+        <p>Random Forest impurity importance, with one-hot encoded columns summed back to their source feature.</p>
+      </div>
+      <div class="chart-card__body">
+        <img src="{{ url_for('static', filename=metrics.charts.feature_importance) }}"
+             alt="Horizontal bar chart of Random Forest feature importance, led by parking, living area and property age."
+             loading="lazy">
+      </div>
+    </figure>
+  </div>
+</section>
+
+<hr class="divider" style="margin: 2.5rem auto; max-width: var(--max-width);">
+
+<!-- Feature importance table -->
+<section class="container section--tight">
+  <div class="section-heading">
+    <h2>Feature importance in detail</h2>
+    <p>
+      Two independent measures are reported, because they answer different questions. Impurity importance
+      reflects how often a feature was used to split trees, which tends to favour high-cardinality
+      features. Permutation importance measures the drop in R² on unseen data when a feature's values are
+      shuffled, which is closer to predictive usefulness.
+    </p>
+  </div>
+
+  <div class="table-scroll">
+    <table class="table table--data">
+      <caption class="sr-only">Feature importance from impurity reduction and permutation testing.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Feature</th>
+          <th scope="col">Impurity importance</th>
+          <th scope="col">Permutation importance (share of total)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in metrics.feature_importances %}
+        <tr>
+          <td>{{ item.label }}</td>
+          <td>{{ item.importance_pct }}%</td>
+          <td>{{ item.permutation_importance_pct }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="alert alert--info" style="margin-top: 1.5rem; margin-bottom: 0;">
+    <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/>
+    </svg>
+    <p>
+      <strong>Interpretation caution.</strong>
+      These are global association measures computed from the fitted model and the historical data. They
+      describe which inputs the model relies on, not which factors cause a price. Feature importance
+      should not be read as advice about which improvements would raise a home's value.
+    </p>
+  </div>
+</section>
+
+<hr class="divider" style="margin: 2.5rem auto; max-width: var(--max-width);">
+
+<!-- Dataset statistics -->
+<section class="container section--tight">
+  <div class="section-heading">
+    <h2>Dataset statistics</h2>
+    <p>
+      Source: {{ dataset.name }}, compiled by {{ dataset.author }} and published in
+      {{ dataset.publication }}. Retrieved from OpenML (dataset 42165).
+    </p>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card__header"><h3>Sale price</h3></div>
+      <ul class="summary-list">
+        <li><span class="summary-list__label">Minimum</span><span class="summary-list__value">{{ stats.price.min | currency }}</span></li>
+        <li><span class="summary-list__label">25th percentile</span><span class="summary-list__value">{{ stats.price.q25 | currency }}</span></li>
+        <li><span class="summary-list__label">Median</span><span class="summary-list__value">{{ stats.price.median | currency }}</span></li>
+        <li><span class="summary-list__label">Mean</span><span class="summary-list__value">{{ stats.price.mean | currency }}</span></li>
+        <li><span class="summary-list__label">75th percentile</span><span class="summary-list__value">{{ stats.price.q75 | currency }}</span></li>
+        <li><span class="summary-list__label">Maximum</span><span class="summary-list__value">{{ stats.price.max | currency }}</span></li>
+        <li><span class="summary-list__label">Standard deviation</span><span class="summary-list__value">{{ stats.price.std | currency }}</span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card__header"><h3>Property characteristics</h3></div>
+      <ul class="summary-list">
+        <li><span class="summary-list__label">Living area (median)</span><span class="summary-list__value">{{ stats.area_sqft.median | num }} sq ft</span></li>
+        <li><span class="summary-list__label">Living area (range)</span><span class="summary-list__value">{{ stats.area_sqft.min | num }}–{{ stats.area_sqft.max | num }} sq ft</span></li>
+        <li><span class="summary-list__label">Lot area (median)</span><span class="summary-list__value">{{ stats.lot_area_sqft.median | num }} sq ft</span></li>
+        <li><span class="summary-list__label">Lot area (range)</span><span class="summary-list__value">{{ stats.lot_area_sqft.min | num }}–{{ stats.lot_area_sqft.max | num }} sq ft</span></li>
+        <li><span class="summary-list__label">Bedrooms (median)</span><span class="summary-list__value">{{ '%g'|format(stats.bedrooms_median) }}</span></li>
+        <li><span class="summary-list__label">Bathrooms (median)</span><span class="summary-list__value">{{ '%g'|format(stats.bathrooms_median) }}</span></li>
+        <li><span class="summary-list__label">Age at sale (median)</span><span class="summary-list__value">{{ stats.property_age.median | int }} yrs</span></li>
+        <li><span class="summary-list__label">Age at sale (range)</span><span class="summary-list__value">{{ stats.property_age.min | int }}–{{ stats.property_age.max | int }} yrs</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin: 2.25rem 0 0.85rem;">Median sale price by neighborhood</h3>
+  <p class="text-muted" style="margin-bottom: 1rem;">
+    All {{ stats.num_neighborhoods }} neighborhoods present in the training data, ranked by median sale price.
+  </p>
+  <div class="table-scroll">
+    <table class="table table--data">
+      <caption class="sr-only">Median and mean sale price, typical living area and age for each neighborhood.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Neighborhood</th>
+          <th scope="col">Sales</th>
+          <th scope="col">Median price</th>
+          <th scope="col">Mean price</th>
+          <th scope="col">Median area (sq ft)</th>
+          <th scope="col">Median age (yrs)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in stats.neighborhood_summary %}
+        <tr>
+          <td>{{ row.location }}</td>
+          <td>{{ row['count'] }}</td>
+          <td>{{ row.median_price | currency }}</td>
+          <td>{{ row.mean_price | currency }}</td>
+          <td>{{ row.median_area | num }}</td>
+          <td>{{ row.median_age }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin: 2.25rem 0 0.85rem;">Median sale price by property type</h3>
+  <div class="table-scroll">
+    <table class="table table--data">
+      <caption class="sr-only">Sales count, median price and median area per property type.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Property type</th>
+          <th scope="col">Sales</th>
+          <th scope="col">Median price</th>
+          <th scope="col">Median area (sq ft)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in stats.property_type_summary %}
+        <tr>
+          <td>{{ row.property_type }}</td>
+          <td>{{ row['count'] }}</td>
+          <td>{{ row.median_price | currency }}</td>
+          <td>{{ row.median_area | num }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin: 2.25rem 0 0.85rem;">Data preparation record</h3>
+  <div class="card">
+    <ul class="summary-list">
+      <li><span class="summary-list__label">Raw records loaded</span><span class="summary-list__value">{{ prep.raw_shape.rows | num }} rows × {{ prep.raw_shape.columns }} columns</span></li>
+      <li><span class="summary-list__label">Duplicate rows removed</span><span class="summary-list__value">{{ prep.cleaning_summary.duplicates_removed }}</span></li>
+      <li><span class="summary-list__label">Invalid or anomalous sales removed</span><span class="summary-list__value">{{ prep.cleaning_summary.anomalies_or_invalid_removed }}</span></li>
+      <li><span class="summary-list__label">Records remaining after cleaning</span><span class="summary-list__value">{{ prep.cleaning_summary.final_rows | num }}</span></li>
+      <li><span class="summary-list__label">Missing values handled by the pipeline</span><span class="summary-list__value">Median (numeric) / most frequent (categorical), fitted on the training split only</span></li>
+      <li><span class="summary-list__label">Training rows</span><span class="summary-list__value">{{ prep.train_rows | num }}</span></li>
+      <li><span class="summary-list__label">Test rows (held out)</span><span class="summary-list__value">{{ prep.test_rows | num }}</span></li>
+      <li><span class="summary-list__label">Model last trained</span><span class="summary-list__value">{{ metrics.trained_at_utc }}</span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="container section">
+  <div class="card">
+    <div class="card__header"><h3>Limitations of these insights</h3></div>
+    <ul>
+      <li>All records come from a single mid-western US city between 2006 and 2010, so the relationships
+        shown here do not transfer to other markets or to current price levels.</li>
+      <li>Median prices by neighborhood are simple descriptive summaries, not quality-adjusted indices;
+        a neighborhood can look expensive simply because its homes are larger.</li>
+      <li>Some neighborhoods have very few recorded sales, so their medians are noisy.</li>
+      <li>Feature importance describes the fitted model, not the housing market, and carries no causal
+        interpretation.</li>
+    </ul>
+  </div>
+</section>
+
+{% endblock %}

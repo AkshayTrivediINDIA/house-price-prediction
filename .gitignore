@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+
+# Runtime prediction log (SQLite) — never commit live activity data
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Generated artifacts that are safe to rebuild.
+# NOTE: the trained pipeline and metrics.json ARE committed so the application
+# runs immediately on a fresh clone without retraining. Remove these two lines
+# if you would rather keep the repository source-only.
+# models/*.joblib
+# models/metrics.json
+# static/images/charts/*.png

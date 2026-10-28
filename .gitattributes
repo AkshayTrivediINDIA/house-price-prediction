@@ -1,0 +1,15 @@
+# Keep the deployed (Linux) checkout byte-identical for text files.
+* text=auto eol=lf
+
+# Explicit text files that must stay LF
+Procfile text eol=lf
+render.yaml text eol=lf
+.python-version text eol=lf
+requirements.txt text eol=lf
+
+# Binary artifacts — never normalise or diff as text
+*.joblib binary
+*.png binary
+*.jpg binary
+*.pdf binary
+*.pptx binary

@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Dashboard — HomeValue{% endblock %}
+{% block meta_description %}Live dashboard of prediction activity, estimated price distribution and measured model performance.{% endblock %}
+
+{% block content %}
+
+<section class="container dash">
+  <div class="dash__head">
+    <div>
+      <span class="eyebrow">Prediction dashboard</span>
+      <h1>Insights from your predictions</h1>
+      <p class="dash__sub">
+        Every estimate this application has served, recorded as it happened and
+        aggregated live. Model accuracy figures are measured on the held-out test
+        set and do not change with activity.
+      </p>
+    </div>
+    <div class="dash__actions">
+      <button class="btn btn--secondary" type="button" id="refreshDash">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-3.2-6.9"/><path d="M21 3v6h-6"/>
+        </svg>
+        Refresh
+      </button>
+      <button class="btn btn--secondary" type="button" id="sampleDash">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>
+        </svg>
+        Log sample run
+      </button>
+      <a class="btn btn--primary" href="{{ url_for('predict_page') }}">
+        New estimate
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12h14M13 6l6 6-6 6"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <div id="dashAlert" class="alert alert--danger" role="alert" style="display:none;">
+    <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+    </svg>
+    <p id="dashAlertMessage"></p>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="kpi-strip" id="kpiStrip">
+    <div class="kpi">
+      <span class="kpi__label">Predictions logged</span>
+      <span class="kpi__value" data-kpi="total">{{ summary.total_predictions | num }}</span>
+      <span class="kpi__note" data-kpi="window">{% if summary.has_data %}since {{ summary.first_at[:10] }}{% else %}nothing recorded yet{% endif %}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi__label">Median estimate</span>
+      <span class="kpi__value" data-kpi="median">{% if summary.has_data %}{{ summary.price.median | currency }}{% else %}—{% endif %}</span>
+      <span class="kpi__note">{% if summary.has_data %}{{ summary.price.min | currency }} – {{ summary.price.max | currency }}{% else %}awaiting first estimate{% endif %}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi__label">Median price / sq ft</span>
+      <span class="kpi__value" data-kpi="ppsf">{% if summary.has_data and summary.price_per_sqft.median %}{{ dataset.currency_symbol }}{{ summary.price_per_sqft.median | num(2) }}{% else %}—{% endif %}</span>
+      <span class="kpi__note">{% if summary.has_data %}across logged estimates{% else %}awaiting first estimate{% endif %}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi__label">Test R²</span>
+      <span class="kpi__value">{{ summary.model.test_metrics.r2 | default('—') }}</span>
+      <span class="kpi__note">held-out, {{ summary.model.name }}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi__label">Typical error (MAE)</span>
+      <span class="kpi__value">{{ summary.model.test_metrics.mae | currency if summary.model.test_metrics.mae else '—' }}</span>
+      <span class="kpi__note">average miss on unseen sales</span>
+    </div>
+  </div>
+
+  {% if not summary.has_data %}
+  <!-- Empty state -->
+  <div class="state state--panel">
+    <span class="state__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>
+      </svg>
+    </span>
+    <h1>No predictions recorded yet</h1>
+    <p>
+      This dashboard reports on real estimates the application has served, so it
+      stays empty until something is logged. Make an estimate through the form to
+      populate it, or run a sample batch to see the dashboard with real model
+      output on real properties from the dataset.
+    </p>
+    <div class="state__actions">
+      <button class="btn btn--primary" type="button" id="sampleDashEmpty">Log a sample run of 40 real properties</button>
+      <a class="btn btn--secondary" href="{{ url_for('predict_page') }}">Make an estimate</a>
+    </div>
+  </div>
+  {% else %}
+
+  <!-- Row 1 -->
+  <div class="dash-grid">
+    <section class="panel dash-card">
+      <header class="dash-card__head">
+        <div>
+          <h2>Prediction volume</h2>
+          <p>Estimates logged per {{ 'hour' if summary.timeline_granularity == 'hour' else 'day' }}, with the median estimate for each {{ 'hour' if summary.timeline_granularity == 'hour' else 'day' }}.</p>
+        </div>
+        <span class="dash-card__tag" data-tag="timeline">{{ summary.timeline | length }} day(s)</span>
+      </header>
+      <div class="dash-card__body">
+        <div class="chart" id="chartTimeline" data-chart="timeline"></div>
+      </div>
+    </section>
+
+    <section class="panel dash-card">
+      <header class="dash-card__head">
+        <div>
+          <h2>Estimated price distribution</h2>
+          <p>How the logged estimates are spread across price bands.</p>
+        </div>
+        <span class="dash-card__tag" data-tag="histogram">{{ summary.total_predictions }} estimate(s)</span>
+      </header>
+      <div class="dash-card__body">
+        <div class="chart" id="chartHistogram" data-chart="histogram"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Row 2 -->
+  <div class="dash-grid dash-grid--wide-left">
+    <section class="panel dash-card">
+      <header class="dash-card__head">
+        <div>
+          <h2>Estimate by location</h2>
+          <p>Median predicted price per neighbourhood, most-estimated first.</p>
+        </div>
+      </header>
+      <div class="dash-card__body">
+        <div class="chart" id="chartLocation" data-chart="location"></div>
+      </div>
+    </section>
+
+    <section class="panel dash-card">
+      <header class="dash-card__head">
+        <div>
+          <h2>Estimate by property type</h2>
+          <p>Median predicted price per building type.</p>
+        </div>
+      </header>
+      <div class="dash-card__body">
+        <div class="chart" id="chartType" data-chart="type"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Row 3 -->
+  <div class="dash-grid dash-grid--wide-left">
+    <section class="panel dash-card">
+      <header class="dash-card__head">
+        <div>
+          <h2>Living area vs estimated price</h2>
+          <p>Each logged estimate, coloured by property age at the time of entry.</p>
+        </div>
+      </header>
+      <div class="dash-card__body">
+        <div class="chart" id="chartScatter" data-chart="scatter"></div>
+      </div>
+    </section>
+
+    <section class="panel dash-card">
+      <header class="dash-card__head">
+        <div>
+          <h2>What drives the model</h2>
+          <p>Global feature importance from the fitted Random Forest.</p>
+        </div>
+      </header>
+      <div class="dash-card__body">
+        <div class="chart" id="chartImportance" data-chart="importance"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Row 4 -->
+  <div class="dash-grid">
+    <section class="panel dash-card">
+      <header class="dash-card__head">
+        <div>
+          <h2>Model performance</h2>
+          <p>Measured once on {{ summary.model.name }}'s held-out test set.</p>
+        </div>
+      </header>
+      <div class="dash-card__body">
+        <ul class="summary-list">
+          <li><span class="summary-list__label">Mean absolute error</span><span class="summary-list__value">{{ summary.model.test_metrics.mae | currency }}</span></li>
+          <li><span class="summary-list__label">Root mean squared error</span><span class="summary-list__value">{{ summary.model.test_metrics.rmse | currency }}</span></li>
+          <li><span class="summary-list__label">R² score</span><span class="summary-list__value">{{ summary.model.test_metrics.r2 }}</span></li>
+          <li><span class="summary-list__label">Mean absolute % error</span><span class="summary-list__value">{{ summary.model.test_metrics.mape_percent }}%</span></li>
+        </ul>
+        <div class="chart chart--small" id="chartAccuracy" data-chart="accuracy"></div>
+      </div>
+    </section>
+
+    <section class="panel dash-card">
+      <header class="dash-card__head">
+        <div>
+          <h2>Logged activity profile</h2>
+          <p>Median characteristics of the properties you have estimated.</p>
+        </div>
+      </header>
+      <div class="dash-card__body">
+        <ul class="summary-list">
+          <li><span class="summary-list__label">Median living area</span><span class="summary-list__value">{% if summary.area.median %}{{ summary.area.median | num }} sq ft{% else %}—{% endif %}</span></li>
+          <li><span class="summary-list__label">Median property age</span><span class="summary-list__value">{% if summary.age.median is not none %}{{ summary.age.median | num }} yrs{% else %}—{% endif %}</span></li>
+          <li><span class="summary-list__label">Median price / sq ft</span><span class="summary-list__value">{{ dataset.currency_symbol }}{{ summary.price_per_sqft.median | num(2) }}</span></li>
+          <li><span class="summary-list__label">Neighbourhoods covered</span><span class="summary-list__value">{{ summary.by_location | length }}</span></li>
+          <li><span class="summary-list__label">Most estimated</span><span class="summary-list__value">{{ summary.by_location[0].name }} ({{ summary.by_location[0].count }})</span></li>
+          <li>
+            <span class="summary-list__label">vs dataset median</span>
+            <span class="summary-list__value {% if summary.vs_training_median and summary.vs_training_median > 0 %}delta-positive{% elif summary.vs_training_median and summary.vs_training_median < 0 %}delta-negative{% else %}delta-neutral{% endif %}">
+              {{ summary.vs_training_median | signed_currency if summary.vs_training_median is not none else '—' }}
+            </span>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <!-- Recent activity -->
+  <section class="panel dash-card dash-card--flush">
+    <header class="dash-card__head">
+      <div>
+        <h2>Recent estimates</h2>
+        <p>The {{ summary.recent | length }} most recent predictions served by the model.</p>
+      </div>
+      <button class="btn btn--ghost" type="button" id="clearDash">Clear log</button>
+    </header>
+    <div class="table-scroll">
+      <table class="table table--data">
+        <caption class="sr-only">Recently logged property estimates.</caption>
+        <thead>
+          <tr>
+            <th scope="col">When</th>
+            <th scope="col">Location</th>
+            <th scope="col">Type</th>
+            <th scope="col">Area</th>
+            <th scope="col">Bed / Bath</th>
+            <th scope="col">Age</th>
+            <th scope="col">Parking</th>
+            <th scope="col">Estimate</th>
+            <th scope="col">Per sq ft</th>
+            <th scope="col">Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in summary.recent %}
+          <tr>
+            <td>{{ row.created_at[11:16] }}<span class="text-muted"> {{ row.created_at[5:10] }}</span></td>
+            <td>{{ row.location }}</td>
+            <td>{{ row.property_type }}</td>
+            <td>{% if row.area_sqft %}{{ row.area_sqft | num }} sq ft{% else %}—{% endif %}</td>
+            <td>{% if row.bedrooms %}{{ row.bedrooms | num(0) }}{% else %}—{% endif %} / {{ row.bathrooms if row.bathrooms else '—' }}</td>
+            <td>{% if row.property_age is not none %}{{ row.property_age | num(0) }} yrs{% else %}—{% endif %}</td>
+            <td>{{ row.parking }}</td>
+            <td class="numeric"><strong>{{ row.predicted_price | currency }}</strong></td>
+            <td class="numeric">{{ dataset.currency_symbol }}{{ row.price_per_sqft | num(2) if row.price_per_sqft else '—' }}</td>
+            <td><span class="tag tag--{{ row.source }}">{{ row.source }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="alert alert--info" style="margin-top: 1.75rem; margin-bottom: 0;">
+    <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/>
+    </svg>
+    <p>
+      <strong>How to read this.</strong>
+      Activity figures describe the estimates this installation has served — they
+      are usage statistics, not market data. Model accuracy is measured once on
+      held-out sales from {{ summary.model.market_region }} ({{ summary.model.observation_period }})
+      and never changes with activity. Estimates are statistical output, not valuations.
+    </p>
+  </div>
+
+  {% endif %}
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script id="dashData" type="application/json">{{ summary | tojson }}</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+{% endblock %}

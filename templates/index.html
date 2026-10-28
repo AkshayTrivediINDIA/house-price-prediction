@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}HomeValue — Estimate Your Home's Value{% endblock %}
+{% block meta_description %}HomeValue estimates residential property values with a Random Forest regression model trained on 1,458 documented home sales from Ames, Iowa.{% endblock %}
+
+{% block content %}
+
+<section class="container">
+  <div class="hero">
+    <div class="hero__content">
+      <span class="eyebrow">Data-driven property estimates</span>
+      <h1>Estimate Your Home's Value</h1>
+      <p>
+        Enter a property's living area, layout, age, location and condition of parking, and HomeValue
+        returns a market estimate produced by a regression model trained on
+        {{ stats.total_properties | default('1,458') | num }} documented residential sales.
+      </p>
+
+      <div class="hero__actions">
+        <a class="btn btn--primary btn--lg" href="{{ url_for('predict_page') }}">
+          Estimate a Property
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
+          </svg>
+        </a>
+        <a class="btn btn--secondary btn--lg" href="{{ url_for('insights_page') }}">Explore Insights</a>
+      </div>
+
+      {% if model_ready %}
+      <div class="hero__meta">
+        <div class="hero__meta-item">
+          <span class="hero__meta-value">{{ stats.total_properties | num }}</span>
+          <span class="hero__meta-label">Recorded sales</span>
+        </div>
+        <div class="hero__meta-item">
+          <span class="hero__meta-value">{{ stats.num_neighborhoods | default('25') }}</span>
+          <span class="hero__meta-label">Neighborhoods</span>
+        </div>
+        <div class="hero__meta-item">
+          <span class="hero__meta-value">{{ stats.price.median | currency if stats.price else '—' }}</span>
+          <span class="hero__meta-label">Median sale price</span>
+        </div>
+        <div class="hero__meta-item">
+          <span class="hero__meta-value">{{ rf_metrics.r2 | default(0) | round(3) }}</span>
+          <span class="hero__meta-label">Test R² score</span>
+        </div>
+      </div>
+      {% else %}
+      <div class="alert alert--warning" style="margin-top: 2rem;">
+        <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+        </svg>
+        <p>
+          <strong>Model not trained yet.</strong>
+          Run <code>python -m src.train_model</code> from the project root to build the model before requesting an estimate.
+        </p>
+      </div>
+      {% endif %}
+    </div>
+
+    <figure class="hero__figure">
+      <img src="{{ url_for('static', filename='images/hero-property.jpg') }}"
+           alt="A two-storey craftsman-style detached house with a front porch on a tree-lined residential street"
+           width="960" height="720" loading="eager">
+      <figcaption>Representative residential property — example imagery, not a specific listing.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="container section">
+  <div class="section-heading">
+    <h2>Three reasons to start here</h2>
+    <p>
+      HomeValue is built as a complete, inspectable machine-learning project: a documented dataset,
+      a reproducible training pipeline, measured accuracy, and an interface that explains what it knows.
+    </p>
+  </div>
+
+  <div class="feature-grid">
+    <article class="feature">
+      <span class="feature__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>
+        </svg>
+      </span>
+      <h3>Data-driven estimation</h3>
+      <p>
+        Every estimate comes from a Random Forest regressor fitted on real recorded sales, never from a
+        lookup table or a hand-written formula. Accuracy is measured on a held-out test set and published
+        on the insights page.
+      </p>
+    </article>
+
+    <article class="feature">
+      <span class="feature__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+        </svg>
+      </span>
+      <h3>Property insights</h3>
+      <p>
+        See which characteristics move the estimate, how the subject property compares with the training
+        medians, and how price behaves against area, bedroom count and age across the whole dataset.
+      </p>
+    </article>
+
+    <article class="feature">
+      <span class="feature__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16M4 12h10M4 18h7"/>
+        </svg>
+      </span>
+      <h3>Easy comparison</h3>
+      <p>
+        Adjust one field at a time and resubmit to compare scenarios side by side. Each result page is
+        shareable, so you can revisit or compare a specific set of property details later.
+      </p>
+    </article>
+  </div>
+</section>
+
+<hr class="divider">
+
+<section class="container section">
+  <div class="section-heading">
+    <h2>How the estimate is produced</h2>
+    <p>
+      The pipeline is the same one used during training, so what you enter is transformed exactly the way
+      the model learned it.
+    </p>
+  </div>
+
+  <ol class="steps">
+    <li>
+      <h4>You describe the property</h4>
+      <p>Nine characteristics covering location, size, layout, age, parking and property type.</p>
+    </li>
+    <li>
+      <h4>Inputs are validated</h4>
+      <p>Range checks catch unrealistic entries, and unseen categories fall back gracefully.</p>
+    </li>
+    <li>
+      <h4>The saved pipeline transforms them</h4>
+      <p>Median imputation, scaling and one-hot encoding are applied from the fitted artifact.</p>
+    </li>
+    <li>
+      <h4>The model returns an estimate</h4>
+      <p>You receive a price, a price per square foot, and the factors that moved it most.</p>
+    </li>
+  </ol>
+</section>
+
+{% endblock %}

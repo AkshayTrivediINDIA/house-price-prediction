@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — HomeValue{% endblock %}
+
+{% block content %}
+<section class="container">
+  <div class="state">
+    <span class="state__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>
+      </svg>
+    </span>
+    <h1>{{ title }}</h1>
+    <p>{{ message }}</p>
+    <div class="state__actions">
+      <a class="btn btn--primary" href="{{ url_for('predict_page') }}">Go to the estimate form</a>
+      <a class="btn btn--secondary" href="{{ url_for('index') }}">Back to home</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

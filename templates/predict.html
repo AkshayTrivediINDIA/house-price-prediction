@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Estimate a Property — HomeValue{% endblock %}
+{% block meta_description %}Enter property details to receive a machine-learning estimate of a home's market value.{% endblock %}
+
+{% block content %}
+
+<section class="container section--tight">
+  <div class="section-heading">
+    <span class="eyebrow">Property estimate</span>
+    <h1>Describe the property</h1>
+    <p>
+      All nine fields are used by the model. Values outside the ranges observed in the training data are
+      rejected, so the estimate stays within the region where the model was actually fitted.
+    </p>
+  </div>
+
+  {% if not model_ready %}
+  <div class="alert alert--danger">
+    <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+    </svg>
+    <p>
+      <strong>The trained model is not available.</strong>
+      Run <code>python -m src.train_model</code> from the project root, then reload this page.
+      Estimates cannot be produced until the model artifact exists.
+    </p>
+  </div>
+  {% endif %}
+
+  <div class="predict-layout">
+    <div class="panel">
+      <div class="panel__body">
+        <!--
+          Progressive enhancement: with JavaScript disabled this form still works
+          as a normal GET submission to /result, where the server validates and
+          recomputes the estimate. With JavaScript enabled, main.js validates,
+          calls POST /api/predict, and then navigates to the result page.
+        -->
+        <form id="predictForm" class="predict-form" method="get" action="{{ url_for('result_page') }}" novalidate>
+
+          <div class="form-grid">
+
+            <div class="field field--full" data-field="location">
+              <label class="field__label" for="location">Location (neighborhood)</label>
+              <select class="select" id="location" name="location" required>
+                {% for loc in locations %}
+                <option value="{{ loc }}" {% if loc == defaults.location %}selected{% endif %}>{{ loc }}</option>
+                {% endfor %}
+              </select>
+              <span class="field__hint">One of the {{ locations | length }} Ames neighborhoods present in the training data.</span>
+              <span class="field__error" data-error-for="location"></span>
+            </div>
+
+            <div class="field" data-field="area_sqft">
+              <label class="field__label" for="area_sqft">Living area</label>
+              <div class="input-group">
+                <input class="input" type="number" id="area_sqft" name="area_sqft"
+                       value="{{ defaults.area_sqft | round | int }}"
+                       min="{{ validation_rules.area_sqft.min | int }}" max="{{ validation_rules.area_sqft.max | int }}"
+                       step="10" inputmode="numeric" required
+                       aria-describedby="area_sqft_hint">
+                <span class="input-group__suffix">sq ft</span>
+              </div>
+              <span class="field__hint" id="area_sqft_hint">
+                Above-grade living area. Typical range in the data:
+                {{ defaults.stats.area_sqft.min | num }}–{{ defaults.stats.area_sqft.max | num }} sq ft.
+              </span>
+              <span class="field__error" data-error-for="area_sqft"></span>
+            </div>
+
+            <div class="field" data-field="lot_area_sqft">
+              <label class="field__label" for="lot_area_sqft">Lot area</label>
+              <div class="input-group">
+                <input class="input" type="number" id="lot_area_sqft" name="lot_area_sqft"
+                       value="{{ defaults.lot_area_sqft | round | int }}"
+                       min="{{ validation_rules.lot_area_sqft.min | int }}" max="{{ validation_rules.lot_area_sqft.max | int }}"
+                       step="100" inputmode="numeric" required
+                       aria-describedby="lot_area_sqft_hint">
+                <span class="input-group__suffix">sq ft</span>
+              </div>
+              <span class="field__hint" id="lot_area_sqft_hint">
+                Total plot size, including the footprint and garden. Median: {{ defaults.stats.lot_area_sqft.median | num }} sq ft.
+              </span>
+              <span class="field__error" data-error-for="lot_area_sqft"></span>
+            </div>
+
+            <div class="field" data-field="bedrooms">
+              <label class="field__label" for="bedrooms">Bedrooms</label>
+              <input class="input" type="number" id="bedrooms" name="bedrooms"
+                     value="{{ defaults.bedrooms }}"
+                     min="{{ validation_rules.bedrooms.min }}" max="{{ validation_rules.bedrooms.max }}"
+                     step="1" inputmode="numeric" required
+                     aria-describedby="bedrooms_hint">
+              <span class="field__hint" id="bedrooms_hint">Bedrooms above grade. Median: {{ '%g'|format(defaults.stats.bedrooms_median) }}.</span>
+              <span class="field__error" data-error-for="bedrooms"></span>
+            </div>
+
+            <div class="field" data-field="bathrooms">
+              <label class="field__label" for="bathrooms">Bathrooms</label>
+              <input class="input" type="number" id="bathrooms" name="bathrooms"
+                     value="{{ '%g'|format(defaults.bathrooms) }}"
+                     min="{{ validation_rules.bathrooms.min }}" max="{{ validation_rules.bathrooms.max }}"
+                     step="0.5" inputmode="decimal" required
+                     aria-describedby="bathrooms_hint">
+              <span class="field__hint" id="bathrooms_hint">Full baths + half baths. Use .5 for a half bath. Median: {{ '%g'|format(defaults.stats.bathrooms_median) }}.</span>
+              <span class="field__error" data-error-for="bathrooms"></span>
+            </div>
+
+            <div class="field" data-field="property_age">
+              <label class="field__label" for="property_age">Property age</label>
+              <div class="input-group">
+                <input class="input" type="number" id="property_age" name="property_age"
+                       value="{{ defaults.property_age }}"
+                       min="{{ validation_rules.property_age.min }}" max="{{ validation_rules.property_age.max }}"
+                       step="1" inputmode="numeric" required
+                       aria-describedby="property_age_hint">
+                <span class="input-group__suffix">years</span>
+              </div>
+              <span class="field__hint" id="property_age_hint">Years since construction at the date of sale. Median: {{ defaults.stats.property_age.median | round | int }} years.</span>
+              <span class="field__error" data-error-for="property_age"></span>
+            </div>
+
+            <div class="field" data-field="floors">
+              <label class="field__label" for="floors">Floors</label>
+              <select class="select" id="floors" name="floors" required>
+                {% for f in floor_options %}
+                <option value="{{ f }}" {% if f == defaults.floors %}selected{% endif %}>{{ '%g'|format(f) }} {% if f == 1 %}— single storey{% elif f == 1.5 %}— one and a half storeys{% elif f == 2 %}— two storeys{% else %}— two and a half storeys{% endif %}</option>
+                {% endfor %}
+              </select>
+              <span class="field__hint">Number of finished stories, including a finished half storey.</span>
+              <span class="field__error" data-error-for="floors"></span>
+            </div>
+
+            <div class="field field--full" data-field="parking">
+              <span class="field__label" id="parking_label">Parking availability</span>
+              <div class="segmented" role="radiogroup" aria-labelledby="parking_label">
+                {% for option in parking_options %}
+                <div class="segmented__option">
+                  <input type="radio" id="parking_{{ loop.index }}" name="parking" value="{{ option }}"
+                         {% if option == defaults.parking %}checked{% endif %}>
+                  <label class="segmented__label" for="parking_{{ loop.index }}">{{ option }}</label>
+                </div>
+                {% endfor %}
+              </div>
+              <span class="field__hint">Garage capacity. This is the strongest single driver in the fitted model.</span>
+              <span class="field__error" data-error-for="parking"></span>
+            </div>
+
+            <div class="field field--full" data-field="property_type">
+              <label class="field__label" for="property_type">Property type</label>
+              <select class="select" id="property_type" name="property_type" required>
+                {% for ptype in property_types %}
+                <option value="{{ ptype }}" {% if ptype == defaults.property_type %}selected{% endif %}>{{ ptype }}</option>
+                {% endfor %}
+              </select>
+              <span class="field__hint">Building classification used in the source dataset.</span>
+              <span class="field__error" data-error-for="property_type"></span>
+            </div>
+
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn--primary btn--lg" type="submit" id="predictSubmit" {% if not model_ready %}disabled{% endif %}>
+              <span class="spinner" aria-hidden="true"></span>
+              <span class="btn__label">Predict Price</span>
+            </button>
+            <button class="btn btn--secondary" type="reset" id="resetForm">Reset to typical values</button>
+          </div>
+
+          <div id="formAlert" class="alert alert--danger" role="alert" style="display: none; margin-top: 1.25rem; margin-bottom: 0;">
+            <svg class="alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+            </svg>
+            <p id="formAlertMessage"></p>
+          </div>
+
+          <p class="sr-only" role="status" aria-live="polite" id="formStatus"></p>
+        </form>
+      </div>
+    </div>
+
+    <aside aria-label="Guidance">
+      <div class="side-card">
+        <h4>What the model uses</h4>
+        <p>
+          The estimate is produced by a Random Forest regressor with nine inputs:
+        </p>
+        <ul>
+          <li>Neighborhood / location</li>
+          <li>Living area (sq ft)</li>
+          <li>Lot size (sq ft)</li>
+          <li>Bedrooms and bathrooms</li>
+          <li>Property age in years</li>
+          <li>Floors / stories</li>
+          <li>Parking / garage capacity</li>
+          <li>Property type</li>
+        </ul>
+      </div>
+
+      <div class="side-card">
+        <h4>Reading your result</h4>
+        <p>
+          The result page shows the estimated price, the implied price per square foot, and a sensitivity
+          table showing how the estimate moves when one characteristic is changed and the rest are held
+          constant.
+        </p>
+        <p style="margin-top: 0.6rem;">
+          Sensitivity is a what-if view of the model's response, not a causal effect and not a guarantee.
+        </p>
+      </div>
+
+      <div class="side-card">
+        <h4>Scope of the data</h4>
+        <p>
+          Training records cover residential sales in
+          <strong>{{ app_globals.dataset.market_region }}</strong> recorded between
+          <strong>{{ app_globals.dataset.observation_period }}</strong>.
+          Prices are in US dollars and reflect that market and period only.
+        </p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Expose validation bounds to client-side JS without duplicating them by hand.
+  window.HOMEVALUE_VALIDATION = {{ validation_rules | tojson }};
+  window.HOMEVALUE_MODEL_READY = {{ 'true' if model_ready else 'false' }};
+</script>
+{% endblock %}

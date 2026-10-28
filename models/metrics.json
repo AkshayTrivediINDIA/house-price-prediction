@@ -1,0 +1,514 @@
+{
+  "trained_at_utc": "2026-10-26T17:06:56.583907+00:00",
+  "selected_model": "Random Forest Regressor",
+  "selected_model_key": "random_forest",
+  "selection_reason": "Random Forest Regressor achieved lower held-out test error (RMSE $27,040.66 vs. $30,378.88, MAE $19,039.07 vs. $21,974.48) and higher explained variance (R\u00b2 0.8676 vs. 0.8329).",
+  "dataset_metadata": {
+    "name": "Ames Iowa Residential Housing Dataset",
+    "author": "Dean De Cock (Truman State University)",
+    "publication": "Journal of Statistics Education, Vol. 19, No. 3 (2011)",
+    "source_url": "https://www.openml.org/d/42165",
+    "license": "Public Domain / CC0 Academic Teaching & Research Dataset",
+    "currency": "USD",
+    "currency_symbol": "$",
+    "market_region": "Ames, Iowa, United States",
+    "observation_period": "2006 to 2010"
+  },
+  "data_preparation": {
+    "raw_shape": {
+      "rows": 1460,
+      "columns": 19
+    },
+    "raw_missing_values": {
+      "LotFrontage": 259,
+      "GarageType": 81
+    },
+    "cleaning_summary": {
+      "initial_rows": 1460,
+      "duplicates_removed": 0,
+      "anomalies_or_invalid_removed": 2,
+      "final_rows": 1458,
+      "remaining_missing_for_pipeline_imputation": {
+        "bedrooms": 6
+      }
+    },
+    "train_rows": 1166,
+    "test_rows": 292,
+    "test_split_ratio": 0.2,
+    "random_state": 42
+  },
+  "feature_schema": {
+    "all_features": [
+      "location",
+      "area_sqft",
+      "lot_area_sqft",
+      "bedrooms",
+      "bathrooms",
+      "property_age",
+      "floors",
+      "parking",
+      "property_type"
+    ],
+    "numerical_features": [
+      "area_sqft",
+      "lot_area_sqft",
+      "bedrooms",
+      "bathrooms",
+      "property_age",
+      "floors"
+    ],
+    "categorical_features": [
+      "location",
+      "parking",
+      "property_type"
+    ],
+    "target_column": "price",
+    "feature_labels": {
+      "location": "Neighborhood / Location",
+      "area_sqft": "Living Area (sq ft)",
+      "lot_area_sqft": "Lot Size (sq ft)",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Bathrooms",
+      "property_age": "Property Age (years)",
+      "floors": "Floors / Stories",
+      "parking": "Parking / Garage",
+      "property_type": "Property Type"
+    },
+    "training_medians": {
+      "area_sqft": 1464.0,
+      "lot_area_sqft": 9549.5,
+      "bedrooms": 3.0,
+      "bathrooms": 2.0,
+      "property_age": 36.0,
+      "floors": 1.0
+    },
+    "known_categories": {
+      "location": [
+        "Bloomington Heights",
+        "Bluestem",
+        "Briardale",
+        "Brookside",
+        "Clear Creek",
+        "College Creek",
+        "Crawford",
+        "Edwards",
+        "Gilbert",
+        "Iowa DOT & Rail Road",
+        "Meadow Village",
+        "Mitchell",
+        "North Ames",
+        "Northpark Villa",
+        "Northridge",
+        "Northridge Heights",
+        "Northwest Ames",
+        "Old Town",
+        "Sawyer",
+        "Sawyer West",
+        "Somerset",
+        "South & West of ISU",
+        "Stone Brook",
+        "Timberland",
+        "Veenker"
+      ],
+      "parking": [
+        "1-Car Garage",
+        "2-Car Garage",
+        "3+ Car Garage",
+        "No Garage"
+      ],
+      "property_type": [
+        "Duplex",
+        "Single-Family Detached",
+        "Townhouse (End Unit)",
+        "Townhouse (Interior)",
+        "Two-Family Conversion"
+      ]
+    }
+  },
+  "models": {
+    "linear_regression": {
+      "name": "Linear Regression (Baseline)",
+      "train_metrics": {
+        "mae": 21103.68,
+        "rmse": 30609.74,
+        "r2": 0.8561,
+        "mape_percent": 12.68
+      },
+      "test_metrics": {
+        "mae": 21974.48,
+        "rmse": 30378.88,
+        "r2": 0.8329,
+        "mape_percent": 13.87
+      }
+    },
+    "random_forest": {
+      "name": "Random Forest Regressor",
+      "hyperparameters": {
+        "n_estimators": 300,
+        "max_depth": 18,
+        "min_samples_split": 4,
+        "min_samples_leaf": 1,
+        "random_state": 42,
+        "n_jobs": -1
+      },
+      "train_metrics": {
+        "mae": 8324.85,
+        "rmse": 12949.28,
+        "r2": 0.9743,
+        "mape_percent": 4.9
+      },
+      "test_metrics": {
+        "mae": 19039.07,
+        "rmse": 27040.66,
+        "r2": 0.8676,
+        "mape_percent": 12.18
+      }
+    }
+  },
+  "feature_importances": [
+    {
+      "feature": "parking",
+      "label": "Parking / Garage",
+      "importance": 0.3511,
+      "importance_pct": 35.11,
+      "permutation_importance_pct": 9.36
+    },
+    {
+      "feature": "area_sqft",
+      "label": "Living Area (sq ft)",
+      "importance": 0.3087,
+      "importance_pct": 30.87,
+      "permutation_importance_pct": 48.7
+    },
+    {
+      "feature": "property_age",
+      "label": "Property Age (years)",
+      "importance": 0.1345,
+      "importance_pct": 13.45,
+      "permutation_importance_pct": 26.65
+    },
+    {
+      "feature": "bathrooms",
+      "label": "Bathrooms",
+      "importance": 0.0699,
+      "importance_pct": 6.99,
+      "permutation_importance_pct": 3.66
+    },
+    {
+      "feature": "lot_area_sqft",
+      "label": "Lot Size (sq ft)",
+      "importance": 0.0522,
+      "importance_pct": 5.22,
+      "permutation_importance_pct": 3.3
+    },
+    {
+      "feature": "location",
+      "label": "Neighborhood / Location",
+      "importance": 0.0373,
+      "importance_pct": 3.73,
+      "permutation_importance_pct": 2.08
+    },
+    {
+      "feature": "bedrooms",
+      "label": "Bedrooms",
+      "importance": 0.0254,
+      "importance_pct": 2.54,
+      "permutation_importance_pct": 3.25
+    },
+    {
+      "feature": "floors",
+      "label": "Floors / Stories",
+      "importance": 0.0126,
+      "importance_pct": 1.26,
+      "permutation_importance_pct": 2.22
+    },
+    {
+      "feature": "property_type",
+      "label": "Property Type",
+      "importance": 0.0083,
+      "importance_pct": 0.83,
+      "permutation_importance_pct": 0.79
+    }
+  ],
+  "dataset_statistics": {
+    "total_properties": 1458,
+    "num_neighborhoods": 25,
+    "price": {
+      "min": 34900.0,
+      "q25": 129925.0,
+      "median": 163000.0,
+      "mean": 180933.0,
+      "q75": 214000.0,
+      "max": 755000.0,
+      "std": 79495.0
+    },
+    "area_sqft": {
+      "min": 334.0,
+      "median": 1462.0,
+      "mean": 1510.0,
+      "max": 4476.0
+    },
+    "lot_area_sqft": {
+      "min": 1300.0,
+      "median": 9475.0,
+      "mean": 10460.0,
+      "max": 215245.0
+    },
+    "price_per_sqft": {
+      "median": 120.11,
+      "mean": 120.69,
+      "q25": 100.11,
+      "q75": 138.75
+    },
+    "property_age": {
+      "min": 0.0,
+      "median": 35.0,
+      "mean": 36.6,
+      "max": 136.0
+    },
+    "bedrooms_median": 3.0,
+    "bathrooms_median": 2.0,
+    "neighborhood_summary": [
+      {
+        "location": "Northridge Heights",
+        "count": 77,
+        "median_price": 315000.0,
+        "mean_price": 316271.0,
+        "median_area": 1850.0,
+        "median_age": 1.0
+      },
+      {
+        "location": "Northridge",
+        "count": 41,
+        "median_price": 301500.0,
+        "mean_price": 335295.0,
+        "median_area": 2418.0,
+        "median_age": 12.0
+      },
+      {
+        "location": "Stone Brook",
+        "count": 25,
+        "median_price": 278000.0,
+        "mean_price": 310499.0,
+        "median_area": 1742.0,
+        "median_age": 7.0
+      },
+      {
+        "location": "Timberland",
+        "count": 38,
+        "median_price": 228475.0,
+        "mean_price": 242247.0,
+        "median_area": 1690.0,
+        "median_age": 8.0
+      },
+      {
+        "location": "Somerset",
+        "count": 86,
+        "median_price": 225500.0,
+        "mean_price": 225380.0,
+        "median_area": 1564.0,
+        "median_age": 1.0
+      },
+      {
+        "location": "Veenker",
+        "count": 11,
+        "median_price": 218000.0,
+        "mean_price": 238773.0,
+        "median_area": 1437.0,
+        "median_age": 29.0
+      },
+      {
+        "location": "Crawford",
+        "count": 51,
+        "median_price": 200624.0,
+        "mean_price": 210625.0,
+        "median_area": 1717.0,
+        "median_age": 69.0
+      },
+      {
+        "location": "Clear Creek",
+        "count": 28,
+        "median_price": 200250.0,
+        "mean_price": 212565.0,
+        "median_area": 1738.0,
+        "median_age": 41.5
+      },
+      {
+        "location": "College Creek",
+        "count": 150,
+        "median_price": 197200.0,
+        "mean_price": 197966.0,
+        "median_area": 1500.0,
+        "median_age": 6.0
+      },
+      {
+        "location": "Bloomington Heights",
+        "count": 17,
+        "median_price": 191000.0,
+        "mean_price": 194871.0,
+        "median_area": 1500.0,
+        "median_age": 2.0
+      },
+      {
+        "location": "Northwest Ames",
+        "count": 73,
+        "median_price": 182900.0,
+        "mean_price": 189050.0,
+        "median_area": 1664.0,
+        "median_age": 32.0
+      },
+      {
+        "location": "Gilbert",
+        "count": 79,
+        "median_price": 181000.0,
+        "mean_price": 192855.0,
+        "median_area": 1593.0,
+        "median_age": 8.0
+      },
+      {
+        "location": "Sawyer West",
+        "count": 59,
+        "median_price": 179900.0,
+        "mean_price": 186556.0,
+        "median_area": 1603.0,
+        "median_age": 17.0
+      },
+      {
+        "location": "Mitchell",
+        "count": 49,
+        "median_price": 153500.0,
+        "mean_price": 156270.0,
+        "median_area": 1204.0,
+        "median_age": 26.0
+      },
+      {
+        "location": "Northpark Villa",
+        "count": 9,
+        "median_price": 146000.0,
+        "mean_price": 142694.0,
+        "median_area": 1322.0,
+        "median_age": 32.0
+      },
+      {
+        "location": "North Ames",
+        "count": 225,
+        "median_price": 140000.0,
+        "mean_price": 145847.0,
+        "median_area": 1200.0,
+        "median_age": 48.0
+      },
+      {
+        "location": "South & West of ISU",
+        "count": 25,
+        "median_price": 139500.0,
+        "mean_price": 142591.0,
+        "median_area": 1691.0,
+        "median_age": 83.0
+      },
+      {
+        "location": "Bluestem",
+        "count": 2,
+        "median_price": 137500.0,
+        "mean_price": 137500.0,
+        "median_area": 1392.0,
+        "median_age": 28.5
+      },
+      {
+        "location": "Sawyer",
+        "count": 74,
+        "median_price": 135000.0,
+        "mean_price": 136793.0,
+        "median_area": 1106.0,
+        "median_age": 43.0
+      },
+      {
+        "location": "Brookside",
+        "count": 58,
+        "median_price": 124300.0,
+        "mean_price": 124834.0,
+        "median_area": 1210.0,
+        "median_age": 78.0
+      },
+      {
+        "location": "Edwards",
+        "count": 98,
+        "median_price": 119500.0,
+        "mean_price": 127319.0,
+        "median_area": 1198.0,
+        "median_age": 54.0
+      },
+      {
+        "location": "Old Town",
+        "count": 113,
+        "median_price": 119000.0,
+        "mean_price": 128225.0,
+        "median_area": 1374.0,
+        "median_age": 86.0
+      },
+      {
+        "location": "Briardale",
+        "count": 16,
+        "median_price": 106000.0,
+        "mean_price": 104494.0,
+        "median_area": 1155.0,
+        "median_age": 37.0
+      },
+      {
+        "location": "Iowa DOT & Rail Road",
+        "count": 37,
+        "median_price": 103000.0,
+        "mean_price": 100124.0,
+        "median_area": 1128.0,
+        "median_age": 84.0
+      },
+      {
+        "location": "Meadow Village",
+        "count": 17,
+        "median_price": 88000.0,
+        "mean_price": 98576.0,
+        "median_area": 1092.0,
+        "median_age": 36.0
+      }
+    ],
+    "property_type_summary": [
+      {
+        "property_type": "Townhouse (End Unit)",
+        "count": 114,
+        "median_price": 172200.0,
+        "median_area": 1337.0
+      },
+      {
+        "property_type": "Single-Family Detached",
+        "count": 1218,
+        "median_price": 167900.0,
+        "median_area": 1482.0
+      },
+      {
+        "property_type": "Townhouse (Interior)",
+        "count": 43,
+        "median_price": 137500.0,
+        "median_area": 1306.0
+      },
+      {
+        "property_type": "Duplex",
+        "count": 52,
+        "median_price": 135980.0,
+        "median_area": 1660.0
+      },
+      {
+        "property_type": "Two-Family Conversion",
+        "count": 31,
+        "median_price": 127500.0,
+        "median_area": 1387.0
+      }
+    ]
+  },
+  "charts": {
+    "price_distribution": "images/charts/price_distribution.png",
+    "price_vs_area": "images/charts/price_vs_area.png",
+    "price_vs_bedrooms": "images/charts/price_vs_bedrooms.png",
+    "price_vs_age": "images/charts/price_vs_age.png",
+    "feature_importance": "images/charts/feature_importance.png",
+    "model_comparison": "images/charts/model_comparison.png"
+  }
+}

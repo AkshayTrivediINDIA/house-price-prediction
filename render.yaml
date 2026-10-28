@@ -1,0 +1,25 @@
+# Render Blueprint for the HomeValue house price prediction app.
+#
+# Deploy with: Render Dashboard -> New -> Blueprint -> select this repository.
+# Render reads this file, builds the service, and starts it behind HTTPS.
+services:
+  - type: web
+    name: homevalue-house-price
+    runtime: python
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    # One worker keeps the 16 MB model + scikit-learn well inside the 512 MB
+    # free-plan limit; threads handle concurrent requests instead of processes.
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120 --access-logfile - --error-logfile -
+    healthCheckPath: /health
+    autoDeploy: true
+
+    # Free instances have an ephemeral filesystem, so the SQLite prediction log
+    # (data/predictions.db) resets on every deploy or restart. The dashboard
+    # still works, it just starts empty. To keep history, move to a paid plan,
+    # uncomment the disk below, and set PREDICTIONS_DB_PATH=/var/data/predictions.db
+    # in the service's environment variables. See DEPLOYMENT.md.
+    # disk:
+    #   name: homevalue-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
