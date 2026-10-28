@@ -226,6 +226,8 @@ jupyter notebook notebooks/exploratory_analysis.ipynb
 
 ### Deploy to Render
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/AkshayTrivediINDIA/house-price-prediction)
+
 The repository ships with a `render.yaml` Blueprint, a `Procfile`, a pinned
 Python 3.13.1 runtime and a pinned scikit-learn 1.6.1 (the version that produced
 the saved model), so it deploys as-is:
